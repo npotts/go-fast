@@ -1,7 +1,6 @@
 package gofast
 
 import (
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -25,7 +24,6 @@ func (w *worker) Stat() Stats {
 }
 
 func (w *worker) Start(url string, maxsize int64, wg *sync.WaitGroup) {
-	fmt.Println("Worker fetching from ", url)
 	tlast := time.Now()
 	total := int64(0)
 	if resp, err := http.Get(url); err == nil {
