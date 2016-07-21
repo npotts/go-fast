@@ -23,9 +23,17 @@ import (
 	"time"
 )
 
+/*Settings is the configurable settings to pass to a Measurer*/
+type Settings struct {
+	Workers  int           //number of workers to use
+	MaxBytes int64         //maximum number of bytes to ingest
+	Timeout  time.Duration //maximal time to run for
+	EmitJSON bool          //emit JSON output
+}
+
 //Measurer is an interface used to measure values.  The returned channel will be written to exactly once
 type Measurer interface {
-	Measure(workers int, maxbytes int64) <-chan Results
+	Measure(Settings) <-chan Results
 }
 
 //New returns an object that is a measurer
@@ -41,8 +49,8 @@ type gofast struct {
 }
 
 //Measure implemented the measurement interface as well as performs the measurements
-func (gf *gofast) Measure(nworkers int, maxsize int64) <-chan Results {
-	urls, err := gf.getURLs(nworkers)
+func (gf *gofast) Measure(cfg Settings) <-chan Results {
+	urls, err := gf.getURLs(cfg.Workers)
 	if err != nil {
 		panic(err)
 	}
@@ -50,19 +58,19 @@ func (gf *gofast) Measure(nworkers int, maxsize int64) <-chan Results {
 	if len(urls) == 0 {
 		go func() { gf.stats <- Results{} }()
 	} else {
-		go gf.run(urls, maxsize)
+		go gf.run(urls, cfg)
 	}
 	return gf.stats
 }
 
-func (gf *gofast) run(urls []string, maxsize int64) {
+func (gf *gofast) run(urls []string, cfg Settings) {
 	//TODO: Fan-out to run tests, fan in with results
 	var wg sync.WaitGroup
 	workers := []Worker{}
 	for _, url := range urls {
 		wg.Add(1)
 		worker := new(worker)
-		go worker.Start(url, maxsize, &wg)
+		go worker.Start(url, cfg, &wg)
 		workers = append(workers, worker)
 	}
 	wg.Wait()

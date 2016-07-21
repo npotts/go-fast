@@ -30,7 +30,8 @@ import (
 var (
 	app     = kingpin.New("go-fast", "A CLI interface to www.fast.com")
 	workers = app.Flag("workers", "Number of workers to start. Currently www.fast.com/Netflix only allows up to 3").Default("3").Short('w').Uint()
-	bytes   = app.Flag("max", "Maximum worker download size").Default("50MB").Short('m').String()
+	bytes   = app.Flag("max", "Maximum worker download size").Default("-1").Short('m').String()
+	timeout = app.Flag("timeout", "Maximum time to allow workers to run. Negative values indicate dont timeout").Default("-1s").Short('t').Duration()
 )
 
 func parse() {
@@ -50,7 +51,8 @@ func main() {
 	}
 
 	gf := gofast.New()
+	cfg := gofast.Settings{MaxBytes: int64(nb), Timeout: *timeout, Workers: int(*workers)}
 	log.Printf("Starting with %d worker(s)\n", *workers)
-	results := <-gf.Measure(int(*workers), int64(nb))
+	results := <-gf.Measure(cfg)
 	log.Println(results)
 }

@@ -9,7 +9,7 @@ import (
 /*The Worker interface is used by the actual lower level workers
 responsible for downloading the files*/
 type Worker interface {
-	Start(url string, maxsize int64, wg *sync.WaitGroup)
+	Start(url string, cfg Settings, wg *sync.WaitGroup)
 	Stat() Stats
 }
 
@@ -23,8 +23,9 @@ func (w *worker) Stat() Stats {
 	return w.stats.Stats()
 }
 
-func (w *worker) Start(url string, maxsize int64, wg *sync.WaitGroup) {
+func (w *worker) Start(url string, cfg Settings, wg *sync.WaitGroup) {
 	tlast := time.Now()
+	tstart := time.Now()
 	total := int64(0)
 	if resp, err := http.Get(url); err == nil {
 		defer resp.Body.Close()
@@ -35,7 +36,9 @@ func (w *worker) Start(url string, maxsize int64, wg *sync.WaitGroup) {
 			tlast = time.Now()
 			nstat.Bps = bps(nstat.Duration, nstat.Bytes)
 			w.stats = append(w.stats, nstat)
-			if total += int64(n); e != nil || total > maxsize {
+			if total += int64(n); e != nil ||
+				(cfg.MaxBytes > 0 && total > cfg.MaxBytes) ||
+				(cfg.Timeout > 0 && time.Since(tstart) > cfg.Timeout) {
 				break
 			}
 		}
