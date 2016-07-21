@@ -1,3 +1,6 @@
+/*Package gofast is a go module that access www.fast.com in order to derive upload/download speeds*/
+package gofast
+
 /*
 Copyright (c) 2016 Nicholas Potts
 
@@ -15,39 +18,49 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package gofast
-
 import (
 	"fmt"
-	// "golang.org/x/net/html"
-	// "net/http"
-	// "regexp"
-	"testing"
+	"time"
 )
 
-var _ = fmt.Sprint
+func bps(dur time.Duration, bytes int) float64 {
+	return 8 * float64(bytes) / dur.Seconds()
+}
 
-// func TestGoFast_Script(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.script()
-// 	fmt.Println(name, err)
-// }
+//Stats is a simple store of statistic data
+type Stats struct {
+	Error    error
+	Duration time.Duration
+	Bytes    int
+	Bps      float64 //bits per second
+}
 
-// func TestGoFast_getToken(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.getToken()
-// 	fmt.Println(name, err)
-// }
+func (s Stats) String() string {
+	return fmt.Sprintf("Error=%v Duration=%v # Bytes=%d Bps=%4.3f", s.Error, s.Duration, s.Bytes, s.Bps)
+}
 
-// func TestGoFast_getURLs(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.getURLs(200)
-// 	fmt.Println(name, err)
-// }
+type nStats []Stats
 
-func TestAll(t *testing.T) {
-	gf := new(gofast)
-	resp := gf.Measure(3, 1024*1024*5)
-	v := <-resp
-	fmt.Println(v)
+func (n nStats) Stats() (rtn Stats) {
+	for _, i := range n {
+		rtn.Bytes += i.Bytes
+		rtn.Duration += i.Duration
+	}
+	rtn.Bps = bps(rtn.Duration, rtn.Bytes)
+	return
+}
+
+//Results is the finaly results of the test
+type Results struct {
+	Bytes      []int
+	Duration   []time.Duration
+	BitsPerSec []float64
+	Workers    int
+	Bps        float64
+	Kbps       float64
+	Mbps       float64
+}
+
+func (r Results) String() string {
+	return fmt.Sprintf("%d Worker(s) downloaded at an average of (%f, %f, %f) Bit, KBit, and MBit/sec", r.Workers, r.Bps, r.Kbps, r.Mbps)
 }

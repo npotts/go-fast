@@ -18,43 +18,58 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import "time"
-
-//Stats is a simple store of statistic data
-type Stats struct {
-	Duration time.Duration
-	Bytes    int
-	Kbps     float64
-}
+import (
+	"sync"
+	"time"
+)
 
 //Measurer is an interface used to measure values.  The returned channel will be written to exactly once
 type Measurer interface {
-	Measure(int) <-chan []Stats
+	Measure(int, int) <-chan float64
 }
 
 //basic structure that implements the Measurer interface
 type gofast struct {
 	token    string
 	routines int
-	stats    chan []Stats
+	stats    chan Results
 }
 
 //Measure implemented the measurement interface as well as performs the measurements
-func (gf *gofast) Measure(count int) (stats chan []Stats) {
+func (gf *gofast) Measure(count, maxsize int) chan Results {
 	urls, err := gf.getURLs(count)
 	if err != nil {
 		panic(err)
 	}
-	gf.stats = make(chan []Stats, len(urls))
+	gf.stats = make(chan Results)
 	if len(urls) == 0 {
-		go func() { gf.stats <- []Stats{} }()
+		go func() { gf.stats <- Results{} }()
 	} else {
-		go gf.fanout()
+		go gf.run(urls, maxsize)
 	}
-	return
+	return gf.stats
 }
 
-func (gf *gofast) fanout() {
+func (gf *gofast) run(urls []string, maxsize int) {
 	//TODO: Fan-out to run tests, fan in with results
-
+	var wg sync.WaitGroup
+	workers := []Worker{}
+	for _, url := range urls {
+		wg.Add(1)
+		worker := new(worker)
+		go worker.Start(url, maxsize, &wg)
+		workers = append(workers, worker)
+	}
+	wg.Wait()
+	stats := Results{Bytes: []int{}, Duration: []time.Duration{}, BitsPerSec: []float64{}, Workers: len(workers)}
+	for _, worker := range workers {
+		wstat := worker.Stat()
+		stats.Bytes = append(stats.Bytes, wstat.Bytes)
+		stats.Duration = append(stats.Duration, wstat.Duration)
+		stats.BitsPerSec = append(stats.BitsPerSec, wstat.Bps)
+		stats.Bps += wstat.Bps
+	}
+	stats.Kbps = stats.Bps / 1024.0
+	stats.Mbps = stats.Kbps / 1024.0
+	gf.stats <- stats
 }
