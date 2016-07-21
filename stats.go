@@ -28,7 +28,7 @@ func bps(dur time.Duration, bytes int) float64 {
 
 //Stats is a simple store of statistic data
 type Stats struct {
-	Error    error         `json:"error"`             //Error, if any, that occurred while reading in a sample set
+	Error    error         `json:"error,omitempty"`   //Error, if any, that occurred while reading in a sample set
 	Duration time.Duration `json:"duation"`           //how long the operation took to read in Bytes
 	Bytes    int           `json:"bytes"`             //the number of bytes read in
 	Bps      float64       `json:"bps"`               //bits per second over the immediate sample period
