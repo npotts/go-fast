@@ -28,17 +28,18 @@ func bps(dur time.Duration, bytes int) float64 {
 
 //Stats is a simple store of statistic data
 type Stats struct {
-	Error    error
-	Duration time.Duration
-	Bytes    int
-	Bps      float64 //bits per second
-	Samples  []Stats //Workers should populate this with all their stats
+	Error    error         `json:"error"`             //Error, if any, that occurred while reading in a sample set
+	Duration time.Duration `json:"duation"`           //how long the operation took to read in Bytes
+	Bytes    int           `json:"bytes"`             //the number of bytes read in
+	Bps      float64       `json:"bps"`               //bits per second over the immediate sample period
+	Samples  []Stats       `json:"samples,omitempty"` //Workers should populate this with all their stats
 }
 
 func (s Stats) String() string {
 	return fmt.Sprintf("Error=%v Duration=%v # Bytes=%d Bps=%4.3f", s.Error, s.Duration, s.Bytes, s.Bps)
 }
 
+//nStats is a slice of Stats
 type nStats []Stats
 
 func (n nStats) Stats() (rtn Stats) {
@@ -51,15 +52,16 @@ func (n nStats) Stats() (rtn Stats) {
 	return
 }
 
-//Results is the final results of the test
+//Results is the final results of the test complete with raw data measured form each worker
 type Results struct {
-	Bytes      []int
-	Duration   []time.Duration
-	BitsPerSec []float64
-	Workers    int
-	Bps        float64
-	Kbps       float64
-	Mbps       float64
+	Bytes      []int           `json:"bytes,omitempty"`      //A slice of the total bytes read by each worker
+	Duration   []time.Duration `json:"duration,omitempty"`   // slice of total duration the operation took
+	BitsPerSec []float64       `json:"bitspersec,omitempty"` //sice of calculated bits/sec from each worker
+	Samples    []nStats        `json:"samples,omitempty"`    //Slice of all the samples each worker measured.
+	Workers    int             `json:"workers"`              //number of workers used
+	Bps        float64         `json:"bps"`                  //bits per second
+	Kbps       float64         `json:"kbps"`                 //kbits per second
+	Mbps       float64         `json:"mbps"`                 //MBits per second
 }
 
 func (r Results) String() string {

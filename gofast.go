@@ -74,12 +74,13 @@ func (gf *gofast) run(urls []string, cfg Settings) {
 		workers = append(workers, worker)
 	}
 	wg.Wait()
-	stats := Results{Bytes: []int{}, Duration: []time.Duration{}, BitsPerSec: []float64{}, Workers: len(workers)}
+	stats := Results{Bytes: []int{}, Duration: []time.Duration{}, BitsPerSec: []float64{}, Workers: len(workers), Samples: []nStats{}}
 	for _, worker := range workers {
 		wstat := worker.Stat()
 		stats.Bytes = append(stats.Bytes, wstat.Bytes)
 		stats.Duration = append(stats.Duration, wstat.Duration)
 		stats.BitsPerSec = append(stats.BitsPerSec, wstat.Bps)
+		stats.Samples = append(stats.Samples, wstat.Samples)
 		stats.Bps += wstat.Bps
 	}
 	stats.Kbps = stats.Bps / 1024.0
