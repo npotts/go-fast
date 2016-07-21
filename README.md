@@ -1,4 +1,4 @@
-# Go-fast 
+# Go-fast  [![GoDoc](https://godoc.org/github.com/npotts/go-fast?status.svg)](https://godoc.org/github.com/npotts/go-fast) [![Build Status](https://travis-ci.org/npotts/go-fast.svg?branch=master)](https://travis-ci.org/npotts/go-fast) [![Go Report Card](https://goreportcard.com/badge/github.com/npotts/go-fast)](https://goreportcard.com/report/github.com/npotts/go-fast)
 go-fast is a golang module for interacting with www.fast.com's API to extract believable speed benchmarks.
 
 # Install
