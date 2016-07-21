@@ -3,7 +3,7 @@ sudo: false
 go: 
  - 1.4.2
  - 1.5.1
- - release
+ - 1.6.3
  - tip
 
 # script:

@@ -49,7 +49,7 @@ func (n nStats) Stats() (rtn Stats) {
 	return
 }
 
-//Results is the finaly results of the test
+//Results is the final results of the test
 type Results struct {
 	Bytes      []int
 	Duration   []time.Duration
