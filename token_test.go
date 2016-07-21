@@ -27,27 +27,27 @@ import (
 
 var _ = fmt.Sprint
 
-// func TestGoFast_Script(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.script()
-// 	fmt.Println(name, err)
-// }
-
-// func TestGoFast_getToken(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.getToken()
-// 	fmt.Println(name, err)
-// }
-
-// func TestGoFast_getURLs(t *testing.T) {
-// 	gf := new(gofast)
-// 	name, err := gf.getURLs(200)
-// 	fmt.Println(name, err)
-// }
-
-func TestAll(t *testing.T) {
+func TestGoFast_Script(t *testing.T) {
 	gf := new(gofast)
-	resp := gf.Measure(3, 1024*1024*5)
-	v := <-resp
-	fmt.Println(v)
+	name, err := gf.script()
+	fmt.Println(name, err)
 }
+
+func TestGoFast_getToken(t *testing.T) {
+	gf := new(gofast)
+	name, err := gf.getToken()
+	fmt.Println(name, err)
+}
+
+func TestGoFast_getURLs(t *testing.T) {
+	gf := new(gofast)
+	name, err := gf.getURLs(200)
+	fmt.Println(name, err)
+}
+
+// func TestAll(t *testing.T) {
+// 	gf := new(gofast)
+// 	resp := gf.Measure(3, 1024*1024*5)
+// 	v := <-resp
+// 	fmt.Println(v)
+// }
