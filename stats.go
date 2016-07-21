@@ -62,7 +62,7 @@ type Results struct {
 }
 
 func (r Results) String() string {
-	return fmt.Sprintf(`%d Worker(s) downloaded at an average of
+	return fmt.Sprintf(`%d worker(s) downloaded at an average of
   %.2f Bps
   %.2f Kbps
   %.2f Mbps`, r.Workers, r.Bps, r.Kbps, r.Mbps)
