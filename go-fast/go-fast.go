@@ -19,6 +19,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/alecthomas/kingpin"
 	"github.com/alecthomas/units"
 	"log"
@@ -28,10 +30,12 @@ import (
 )
 
 var (
-	app     = kingpin.New("go-fast", "A CLI interface to www.fast.com")
-	workers = app.Flag("workers", "Number of workers to start. Currently www.fast.com/Netflix only allows up to 3").Default("3").Short('w').Uint()
-	bytes   = app.Flag("max", "Maximum worker download size. Default of 0 means to download the entirity of the files").Default("0").Short('m').String()
-	timeout = app.Flag("timeout", "Maximum time to allow workers to run. Default of 0s indicates to never timeout").Default("0s").Short('t').Duration()
+	app      = kingpin.New("go-fast", "A CLI interface to www.fast.com")
+	workers  = app.Flag("workers", "Number of workers to start. Currently www.fast.com/Netflix only allows up to 3").Default("3").Short('w').Uint()
+	bytes    = app.Flag("max", "Maximum worker download size. Default of 0 means to download the entirity of the files").Default("0").Short('m').String()
+	timeout  = app.Flag("timeout", "Maximum time to allow workers to run. Default of 0s indicates to never timeout").Default("0s").Short('t').Duration()
+	emitjson = app.Flag("json", "emit raw json data with all samples.  Implies --quiet").Default("false").Short('j').Bool()
+	quiet    = app.Flag("quiet", "Only emit measured Bits per second value (and fatal errors)").Default("false").Short('q').Bool()
 )
 
 func parse() {
@@ -52,7 +56,23 @@ func main() {
 
 	gf := gofast.New()
 	cfg := gofast.Settings{MaxBytes: int64(nb), Timeout: *timeout, Workers: int(*workers)}
-	log.Printf("Starting with %d worker(s)\n", *workers)
+	if !*quiet && !*emitjson {
+		log.Printf("Starting with %d worker(s)\n", *workers)
+	}
 	results := <-gf.Measure(cfg)
+
+	if *emitjson {
+		d, err := json.Marshal(results)
+		fmt.Println(string(d))
+		if err == nil {
+			os.Exit(0)
+		}
+		os.Exit(1)
+	}
+
+	if *quiet {
+		fmt.Println(results.Bps)
+		os.Exit(0)
+	}
 	log.Println(results)
 }
