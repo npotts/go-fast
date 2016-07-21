@@ -25,7 +25,12 @@ import (
 
 //Measurer is an interface used to measure values.  The returned channel will be written to exactly once
 type Measurer interface {
-	Measure(int, int) <-chan float64
+	Measure(workers int, maxbytes int64) <-chan Results
+}
+
+//New returns an object that is a measurer
+func New() Measurer {
+	return new(gofast)
 }
 
 //basic structure that implements the Measurer interface
@@ -36,8 +41,8 @@ type gofast struct {
 }
 
 //Measure implemented the measurement interface as well as performs the measurements
-func (gf *gofast) Measure(count, maxsize int) chan Results {
-	urls, err := gf.getURLs(count)
+func (gf *gofast) Measure(nworkers int, maxsize int64) <-chan Results {
+	urls, err := gf.getURLs(nworkers)
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +55,7 @@ func (gf *gofast) Measure(count, maxsize int) chan Results {
 	return gf.stats
 }
 
-func (gf *gofast) run(urls []string, maxsize int) {
+func (gf *gofast) run(urls []string, maxsize int64) {
 	//TODO: Fan-out to run tests, fan in with results
 	var wg sync.WaitGroup
 	workers := []Worker{}

@@ -19,13 +19,8 @@ package gofast
 
 import (
 	"fmt"
-	// "golang.org/x/net/html"
-	// "net/http"
-	// "regexp"
 	"testing"
 )
-
-var _ = fmt.Sprint
 
 func TestGoFast_Script(t *testing.T) {
 	gf := new(gofast)
@@ -44,10 +39,3 @@ func TestGoFast_getURLs(t *testing.T) {
 	name, err := gf.getURLs(200)
 	fmt.Println(name, err)
 }
-
-// func TestAll(t *testing.T) {
-// 	gf := new(gofast)
-// 	resp := gf.Measure(3, 1024*1024*5)
-// 	v := <-resp
-// 	fmt.Println(v)
-// }
