@@ -1,6 +1,3 @@
-/*Package gofast is a go module that access www.fast.com in order to derive upload/download speeds*/
-package gofast
-
 /*
 Copyright (c) 2016 Nicholas Potts
 
@@ -17,6 +14,8 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMA
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
+package gofast
 
 import (
 	"fmt"

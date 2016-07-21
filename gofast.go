@@ -1,4 +1,4 @@
-/*Package gofast is a go module that access www.fast.com in order to derive upload/download speeds*/
+/*Package gofast is a go module that accesses www.fast.com in order to derive upload/download speeds*/
 package gofast
 
 /*
