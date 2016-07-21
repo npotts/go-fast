@@ -32,6 +32,7 @@ type Stats struct {
 	Duration time.Duration
 	Bytes    int
 	Bps      float64 //bits per second
+	Samples  []Stats //Workers should populate this with all their stats
 }
 
 func (s Stats) String() string {
@@ -41,6 +42,7 @@ func (s Stats) String() string {
 type nStats []Stats
 
 func (n nStats) Stats() (rtn Stats) {
+	rtn.Samples = n //store all individual samples here
 	for _, i := range n {
 		rtn.Bytes += i.Bytes
 		rtn.Duration += i.Duration
