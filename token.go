@@ -24,20 +24,25 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 var matchjs = regexp.MustCompile("/app-[0-9a-f]{6}.js")
 var matchToken = regexp.MustCompile(`token:"[a-zA-Z]{32}"`)
 
+func (gofast) getWithTimeout(url string, timeout time.Duration) (*http.Response, error) {
+	client := http.Client{Timeout: timeout}
+	return client.Get(url)
+}
+
 //script returns the js script that contains the token
-func (gofast) script() (jscript string, err error) {
+func (gf gofast) script() (jscript string, err error) {
 	var resp *http.Response
-	resp, err = http.Get("https://www.fast.com")
-	defer resp.Body.Close()
-	if err != nil {
+	if resp, err = gf.getWithTimeout("https://www.fast.com", gf.cfg.Network); err != nil {
 		return
 	}
 	err = fmt.Errorf("Could not find script")
+	defer resp.Body.Close()
 	izer := html.NewTokenizer(resp.Body)
 	for {
 		if izer.Next() == html.StartTagToken {
@@ -53,39 +58,52 @@ func (gofast) script() (jscript string, err error) {
 	return
 }
 
-func (gf *gofast) getToken() (token string, err error) {
+func (gf gofast) getToken() (token string, err error) {
+	var resp *http.Response
+	body := []byte{}
 	err = fmt.Errorf("Could not find token")
 	if token, err = gf.script(); err != nil {
 		return
 	}
-	if resp, e := http.Get("https://fast.com" + token); e == nil {
-		defer resp.Body.Close()
-		if body, e := ioutil.ReadAll(resp.Body); e == nil {
-			if matchToken.Match(body) {
-				return string(matchToken.Find(body)[7:39]), nil
-			}
-		}
+	if resp, err = http.Get("https://fast.com" + token); err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return
+	}
+	if matchToken.Match(body) {
+		return string(matchToken.Find(body)[7:39]), nil
 	}
 	return
 }
 
 func (gf *gofast) getURLs(count int) (urls []string, err error) {
+	token := ""
 	err = fmt.Errorf("Unable to get URLs")
-	if token, err := gf.getToken(); err == nil {
-		url := fmt.Sprintf("http://api.fast.com/netflix/speedtest?https=true&token=%s&urlCount=%d", token, count)
-
-		if resp, err := http.Get(url); err == nil {
-			defer resp.Body.Close()
-			if body, e := ioutil.ReadAll(resp.Body); e == nil {
-				var v []map[string]string
-				if err = json.Unmarshal(body, &v); err == nil {
-					for _, m := range v {
-						urls = append(urls, m["url"])
-					}
-					return urls, nil
-				}
+	if token, err = gf.getToken(); err != nil {
+		return
+	}
+	url := fmt.Sprintf("http://api.fast.com/netflix/speedtest?https=true&token=%s&urlCount=%d", token, count)
+	for {
+		var resp *http.Response
+		body := []byte{}
+		if resp, err = http.Get(url); err != nil {
+			return
+		}
+		defer resp.Body.Close()
+		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+			return
+		}
+		var v []map[string]string
+		if err = json.Unmarshal(body, &v); err != nil {
+			return
+		}
+		for _, m := range v {
+			if len(urls) >= count {
+				return urls, nil
 			}
+			urls = append(urls, m["url"])
 		}
 	}
-	return
 }

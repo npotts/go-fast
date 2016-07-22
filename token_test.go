@@ -36,6 +36,6 @@ func TestGoFast_getToken(t *testing.T) {
 
 func TestGoFast_getURLs(t *testing.T) {
 	gf := new(gofast)
-	name, err := gf.getURLs(200)
+	name, err := gf.getURLs(20)
 	fmt.Println(name, err)
 }

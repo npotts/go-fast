@@ -27,6 +27,7 @@ import (
 type Settings struct {
 	Workers  int           //number of workers to use
 	MaxBytes int64         //maximum number of bytes to ingest
+	Network  time.Duration //maximal time to allow network operations to run for
 	Timeout  time.Duration //maximal time to run for
 	EmitJSON bool          //emit JSON output
 }
@@ -46,20 +47,19 @@ type gofast struct {
 	token    string
 	routines int
 	stats    chan Results
+	cfg      Settings
 }
 
 //Measure implemented the measurement interface as well as performs the measurements
 func (gf *gofast) Measure(cfg Settings) <-chan Results {
 	urls, err := gf.getURLs(cfg.Workers)
-	if err != nil {
-		panic(err)
-	}
-	gf.stats = make(chan Results)
-	if len(urls) == 0 {
+	if err != nil || len(urls) == 0 {
 		go func() { gf.stats <- Results{} }()
-	} else {
-		go gf.run(urls, cfg)
+		return gf.stats
 	}
+
+	gf.stats = make(chan Results)
+	go gf.run(urls, cfg)
 	return gf.stats
 }
 
