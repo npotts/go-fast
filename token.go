@@ -20,6 +20,7 @@ package gofast
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
@@ -30,15 +31,27 @@ import (
 var matchjs = regexp.MustCompile("/app-[0-9a-f]{6}.js")
 var matchToken = regexp.MustCompile(`token:"[a-zA-Z]{32}"`)
 
-func (gofast) getWithTimeout(url string, timeout time.Duration) (*http.Response, error) {
-	client := http.Client{Timeout: timeout}
-	return client.Get(url)
+func (gf gofast) timeoutGet(url string) (resp *http.Response, err error) {
+	client := http.Client{Timeout: gf.cfg.Network}
+	ch := make(chan bool)
+	go func() {
+		resp, err = client.Get(url)
+		ch <- true
+	}()
+	select {
+	case <-ch: //read
+		return
+	case <-time.After(3 * time.Second):
+		return nil, fmt.Errorf("Unable to get data within timeout")
+	}
+	return
 }
 
 //script returns the js script that contains the token
 func (gf gofast) script() (jscript string, err error) {
 	var resp *http.Response
-	if resp, err = gf.getWithTimeout("https://www.fast.com", gf.cfg.Network); err != nil {
+	if resp, err = gf.timeoutGet("https://www.fast.com"); err != nil {
+		err = errors.Wrap(err, "Unable to retrieve HTML to extract script")
 		return
 	}
 	err = fmt.Errorf("Could not find script")
@@ -63,13 +76,16 @@ func (gf gofast) getToken() (token string, err error) {
 	body := []byte{}
 	err = fmt.Errorf("Could not find token")
 	if token, err = gf.script(); err != nil {
+		err = errors.Wrap(err, "Unable to get a token")
 		return
 	}
-	if resp, err = http.Get("https://fast.com" + token); err != nil {
+	if resp, err = gf.timeoutGet("https://fast.com" + token); err != nil {
+		err = errors.Wrap(err, "Unable to retrieve from fast.com with a token")
 		return
 	}
 	defer resp.Body.Close()
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		err = errors.Wrap(err, "Unable to Readall")
 		return
 	}
 	if matchToken.Match(body) {
@@ -82,28 +98,41 @@ func (gf *gofast) getURLs(count int) (urls []string, err error) {
 	token := ""
 	err = fmt.Errorf("Unable to get URLs")
 	if token, err = gf.getToken(); err != nil {
+		err = errors.Wrap(err, "Unable to retrieve URLs without a token")
 		return
 	}
+	murls := map[string]string{}
 	url := fmt.Sprintf("http://api.fast.com/netflix/speedtest?https=true&token=%s&urlCount=%d", token, count)
+	enought := false
 	for {
 		var resp *http.Response
 		body := []byte{}
-		if resp, err = http.Get(url); err != nil {
+		if resp, err = gf.timeoutGet(url); err != nil {
+			err = errors.Wrap(err, "Cannot get JSON body")
 			return
 		}
 		defer resp.Body.Close()
 		if body, err = ioutil.ReadAll(resp.Body); err != nil {
+			err = errors.Wrap(err, "ReadAll on body failed")
 			return
 		}
 		var v []map[string]string
 		if err = json.Unmarshal(body, &v); err != nil {
+			err = errors.Wrapf(err, "Unable to unmarshal %q", body)
 			return
 		}
 		for _, m := range v {
-			if len(urls) >= count {
-				return urls, nil
+			enought = (len(murls) >= count)
+			if !enought {
+				murls[m["url"]] = "" //Make sure URLs are unique
 			}
-			urls = append(urls, m["url"])
+		}
+		if enought {
+			break
 		}
 	}
+	for url := range murls {
+		urls = append(urls, url)
+	}
+	return urls, nil
 }

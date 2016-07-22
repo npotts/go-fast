@@ -19,6 +19,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -39,7 +40,9 @@ type Measurer interface {
 
 //New returns an object that is a measurer
 func New() Measurer {
-	return new(gofast)
+	r := new(gofast)
+	r.stats = make(chan Results)
+	return r
 }
 
 //basic structure that implements the Measurer interface
@@ -51,26 +54,28 @@ type gofast struct {
 }
 
 //Measure implemented the measurement interface as well as performs the measurements
-func (gf *gofast) Measure(cfg Settings) <-chan Results {
+func (gf *gofast) Measure(cfg Settings) (r <-chan Results) {
+	gf.cfg = cfg
+	r = gf.stats
 	urls, err := gf.getURLs(cfg.Workers)
-	if err != nil || len(urls) == 0 {
-		go func() { gf.stats <- Results{} }()
-		return gf.stats
+	if err == nil && len(urls) > 0 {
+		go gf.run(urls)
+		return
 	}
-
-	gf.stats = make(chan Results)
-	go gf.run(urls, cfg)
-	return gf.stats
+	log.Println(err)
+	log.Println(err.Error())
+	go func() { gf.stats <- Results{} }()
+	return
 }
 
-func (gf *gofast) run(urls []string, cfg Settings) {
+func (gf *gofast) run(urls []string) {
 	//TODO: Fan-out to run tests, fan in with results
 	var wg sync.WaitGroup
 	workers := []Worker{}
 	for _, url := range urls {
 		wg.Add(1)
 		worker := new(worker)
-		go worker.Start(url, cfg, &wg)
+		go worker.Start(url, gf.cfg, &wg)
 		workers = append(workers, worker)
 	}
 	wg.Wait()
