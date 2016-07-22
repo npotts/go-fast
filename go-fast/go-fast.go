@@ -33,6 +33,7 @@ var (
 	app      = kingpin.New("go-fast", "A CLI interface to www.fast.com")
 	workers  = app.Flag("workers", "Number of workers to start. Currently www.fast.com/Netflix only allows up to 3").Default("3").Short('w').Uint()
 	bytes    = app.Flag("max", "Maximum worker download size. Default of 0 means to download the entirity of the files").Default("0").Short('m').String()
+	network  = app.Flag("network", "Network timeout Default of should be sufficient").Default("5s").Short('n').Duration()
 	timeout  = app.Flag("timeout", "Maximum time to allow workers to run. Default of 0s indicates to never timeout").Default("0s").Short('t').Duration()
 	emitjson = app.Flag("json", "emit raw json data with all samples.  Implies --quiet").Default("false").Short('j').Bool()
 	quiet    = app.Flag("quiet", "Only emit measured Bits per second value (and fatal errors)").Default("false").Short('q').Bool()
@@ -55,11 +56,14 @@ func main() {
 	}
 
 	gf := gofast.New()
-	cfg := gofast.Settings{MaxBytes: int64(nb), Timeout: *timeout, Workers: int(*workers)}
+	cfg := gofast.Settings{MaxBytes: int64(nb), Timeout: *timeout, Workers: int(*workers), Network: *network}
 	if !*quiet && !*emitjson {
 		log.Printf("Starting with %d worker(s)\n", *workers)
 	}
 	results := <-gf.Measure(cfg)
+	if results.Workers == 0 {
+		os.Exit(-1)
+	}
 
 	if *emitjson {
 		d, err := json.Marshal(results)
