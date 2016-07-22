@@ -19,6 +19,7 @@ package gofast
 
 import (
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -65,6 +66,12 @@ type Results struct {
 }
 
 func (r Results) String() string {
+	if r.Workers == 0 {
+		return ""
+	}
+	if math.IsNaN(r.Bps) {
+		return "Invalid result"
+	}
 	return fmt.Sprintf(`%d worker(s) downloaded at an average of
   %.2f Bps
   %.2f Kbps
